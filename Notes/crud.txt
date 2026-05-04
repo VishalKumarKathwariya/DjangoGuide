@@ -1,0 +1,428 @@
+# 🎓 COMPLETE DJANGO ADMISSION PROJECT (REAL-WORLD)
+
+---
+
+# ⚙️ 1. SETUP
+
+```bash
+django-admin startproject admission_project
+cd admission_project
+python manage.py startapp admission
+pip install pillow
+```
+
+---
+
+# ⚙️ 2. settings.py (CRITICAL)
+
+```python
+INSTALLED_APPS = [
+    ...
+    'admission',
+]
+
+TEMPLATES[0]['DIRS'] = [BASE_DIR / 'templates']
+
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+```
+
+---
+
+# 🌐 3. MAIN URLS
+
+```python
+# admission_project/urls.py
+
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('admission.urls')),
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+```
+
+---
+
+# 📁 4. STRUCTURE
+
+```text
+templates/
+│   base.html
+│
+static/
+│   css/style.css
+│
+media/
+│   photos/
+│   signatures/
+│   documents/
+│
+admission/
+│   models.py
+│   forms.py
+│   views.py
+│   urls.py
+│   admin.py
+│
+│   templates/admission/
+│       list.html
+│       form.html
+│       delete.html
+│       partials/form_field.html
+```
+
+---
+
+# 🧱 5. MODEL (REAL ADMISSION)
+
+```python
+# admission/models.py
+
+from django.db import models
+
+class Admission(models.Model):
+
+    GENDER = [('Male','Male'),('Female','Female'),('Other','Other')]
+    COURSE = [('BCA','BCA'),('BBA','BBA'),('BTech','BTech')]
+
+    # Personal
+    name = models.CharField(max_length=100)
+    father_name = models.CharField(max_length=100)
+    dob = models.DateField()
+    gender = models.CharField(max_length=10, choices=GENDER)
+
+    # Contact
+    email = models.EmailField()
+    phone = models.CharField(max_length=10)
+    address = models.TextField()
+
+    # Academic
+    course = models.CharField(max_length=20, choices=COURSE)
+    previous_school = models.CharField(max_length=200)
+    marks = models.FloatField()
+
+    # Files
+    photo = models.ImageField(upload_to='photos/')
+    signature = models.ImageField(upload_to='signatures/')
+    document = models.FileField(upload_to='documents/')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+```
+
+---
+
+# 🧾 6. FORM (REAL VALIDATION + WIDGETS)
+
+```python
+# admission/forms.py
+
+from django import forms
+from .models import Admission
+
+class AdmissionForm(forms.ModelForm):
+
+    class Meta:
+        model = Admission
+        fields = '__all__'
+        widgets = {
+            'dob': forms.DateInput(attrs={'type':'date'}),
+        }
+
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'
+
+    def clean_phone(self):
+        phone = self.cleaned_data['phone']
+        if not phone.isdigit() or len(phone) != 10:
+            raise forms.ValidationError("Enter valid phone")
+        return phone
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo and photo.size > 2*1024*1024:
+            raise forms.ValidationError("Image < 2MB only")
+        return photo
+```
+
+---
+
+# ⚙️ 7. VIEWS (FULL CRUD CBV)
+
+```python
+# admission/views.py
+
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib import messages
+from .models import Admission
+from .forms import AdmissionForm
+
+class AdmissionListView(ListView):
+    model = Admission
+    template_name = 'admission/list.html'
+    context_object_name = 'admissions'
+
+class AdmissionCreateView(CreateView):
+    model = Admission
+    form_class = AdmissionForm
+    template_name = 'admission/form.html'
+    success_url = reverse_lazy('list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Admission Created")
+        return super().form_valid(form)
+
+class AdmissionUpdateView(UpdateView):
+    model = Admission
+    form_class = AdmissionForm
+    template_name = 'admission/form.html'
+    success_url = reverse_lazy('list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Updated Successfully")
+        return super().form_valid(form)
+
+class AdmissionDeleteView(DeleteView):
+    model = Admission
+    template_name = 'admission/delete.html'
+    success_url = reverse_lazy('list')
+```
+
+---
+
+# 🌐 8. APP URLS
+
+```python
+# admission/urls.py
+
+from django.urls import path
+from .views import *
+
+urlpatterns = [
+    path('', AdmissionListView.as_view(), name='list'),
+    path('create/', AdmissionCreateView.as_view(), name='create'),
+    path('update/<int:pk>/', AdmissionUpdateView.as_view(), name='update'),
+    path('delete/<int:pk>/', AdmissionDeleteView.as_view(), name='delete'),
+]
+```
+
+---
+
+# 🛠️ 9. ADMIN
+
+```python
+# admission/admin.py
+
+from django.contrib import admin
+from .models import Admission
+
+@admin.register(Admission)
+class AdmissionAdmin(admin.ModelAdmin):
+    list_display = ['name','email','course','created_at']
+    search_fields = ['name','email']
+```
+
+---
+
+# 🎨 10. BASE TEMPLATE
+
+```html
+<!-- templates/base.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admission</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-dark bg-dark">
+<div class="container">
+<a href="/" class="navbar-brand">Admission System</a>
+<a href="/create/" class="btn btn-success">Add</a>
+</div>
+</nav>
+
+<div class="container mt-4">
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-success">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+{% block content %}{% endblock %}
+
+</div>
+
+</body>
+</html>
+```
+
+---
+
+# 🧩 11. FORM PARTIAL
+
+```html
+<!-- partials/form_field.html -->
+
+<div class="mb-3">
+<label>{{ field.label }}</label>
+{{ field }}
+{{ field.errors }}
+</div>
+```
+
+---
+
+# 📄 12. FORM TEMPLATE
+
+```html
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Admission Form</h2>
+
+<form method="POST" enctype="multipart/form-data" class="card p-4">
+
+{% csrf_token %}
+
+{% for field in form %}
+{% include 'admission/partials/form_field.html' with field=field %}
+{% endfor %}
+
+<button class="btn btn-primary">Save</button>
+
+</form>
+
+{% endblock %}
+```
+
+---
+
+# 📄 13. LIST TEMPLATE
+
+```html
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Admissions</h2>
+
+<table class="table table-bordered">
+
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Course</th>
+<th>Photo</th>
+<th>Actions</th>
+</tr>
+
+{% for a in admissions %}
+<tr>
+<td>{{ a.name }}</td>
+<td>{{ a.email }}</td>
+<td>{{ a.course }}</td>
+
+<td>
+<img src="{{ a.photo.url }}" width="50">
+</td>
+
+<td>
+<a href="{% url 'update' a.pk %}" class="btn btn-warning btn-sm">Edit</a>
+<a href="{% url 'delete' a.pk %}" class="btn btn-danger btn-sm">Delete</a>
+</td>
+</tr>
+{% endfor %}
+
+</table>
+
+{% endblock %}
+```
+
+---
+
+# 📄 14. DELETE TEMPLATE
+
+```html
+{% extends 'base.html' %}
+{% block content %}
+
+<form method="POST">
+{% csrf_token %}
+<p>Confirm delete?</p>
+<button class="btn btn-danger">Delete</button>
+</form>
+
+{% endblock %}
+```
+
+---
+
+# ▶️ 15. RUN
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+---
+
+# 🧠 FINAL FLOW
+
+```text
+Create → form submit → save DB + files
+Read   → list view
+Update → edit existing record
+Delete → remove record
+Admin  → manage everything
+```
+
+---
+
+# 🔥 THIS IS NOW COMPLETE
+
+You now have:
+
+✔ Real admission form
+✔ File uploads (image + signature + docs)
+✔ Full CRUD
+✔ Admin panel
+✔ Bootstrap UI
+✔ Validation
+✔ Proper project structure
+
+---
+
+# 🚀 NEXT (REAL INDUSTRY LEVEL)
+
+* Authentication (students login)
+* Multi-step admission form
+* PDF generation
+* Approval workflow (admin approve/reject)
+
+---

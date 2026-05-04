@@ -1,0 +1,321 @@
+Start Project Setup (Secure Django E-Commerce)
+
+Create Root Folder
+== E-Commerce Website
+
+Open VS Code
+== File → Open Folder → E-Commerce Website
+
+Create Virtual Environment (Mandatory)
+== python -m venv venv
+
+Activate It
+== venv\Scripts\activate (Windows)
+== source venv/bin/activate (Mac/Linux)
+
+Confirm Activation
+== python --version
+
+Upgrade Core Tools
+== python -m pip install --upgrade pip setuptools wheel
+
+Install Django (Controlled)
+== pip install django
+
+Verify Installation
+== django-admin --version
+
+Install Required Libraries
+== pip install django pillow django-environ
+
+Freeze Requirements
+== pip freeze > requirements.txt
+
+Start Django Project
+== django-admin startproject project .   (Dot is IMPORTANT)
+
+Run Server (Check Environment)
+== python manage.py runserver
+== CTRL + C (Stop Server)
+
+---
+
+Project Structure (Initial)
+
+E-Commerce Website/
+│
+├── manage.py
+├── project/
+│   ├── **init**.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+└── venv/
+
+---
+
+Create Modular Structure
+
+```
+== mkdir apps  
+== mkdir requirements  
+```
+
+Move Into Project Folder
+== cd project
+== mkdir settings
+
+Final Settings Structure
+
+project/
+└── settings/
+├── **init**.py
+├── base.py
+├── dev.py
+└── prod.py
+
+Move settings.py → base.py
+
+---
+
+Update manage.py (VERY IMPORTANT)
+
+Replace:
+'project.settings'
+
+With:
+'project.settings.dev'
+
+---
+
+Fix Interpreter Issue (If Module Error)
+
+```
+== Ctrl + Shift + P  
+== Python: Select Interpreter  
+== Select venv  
+```
+
+---
+
+Create Apps
+
+```
+== python manage.py startapp accounts apps/accounts  
+== python manage.py startapp core apps/core  
+== python manage.py startapp blog apps/blog  
+```
+
+Register Apps (base.py)
+
+INSTALLED_APPS = [
+...
+'apps.accounts',
+'apps.core',
+'apps.blog',
+]
+
+---
+
+Setup Dev Environment (dev.py)
+
+from .base import *
+
+DEBUG = True
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+
+---
+
+Create .env File (IMPORTANT FOR SECURITY)
+
+Location:
+== Root Folder (Same as manage.py)
+
+Example .env:
+
+DEBUG=True
+SECRET_KEY=django-insecure-change-this-key
+ALLOWED_HOSTS=127.0.0.1,localhost
+
+DB_NAME=ecommerce_db
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_HOST=127.0.0.1
+DB_PORT=5432
+
+---
+
+Configure .env in base.py
+
+import environ
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(**file**))))
+
+env = environ.Env(DEBUG=(bool, False))
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+DEBUG = env('DEBUG')
+SECRET_KEY = env('SECRET_KEY')
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
+
+---
+
+Database Setup (PostgreSQL Recommended)
+
+DATABASES = {
+'default': {
+'ENGINE': 'django.db.backends.postgresql',
+'NAME': env('DB_NAME'),
+'USER': env('DB_USER'),
+'PASSWORD': env('DB_PASSWORD'),
+'HOST': env('DB_HOST'),
+'PORT': env('DB_PORT'),
+}
+}
+
+---
+
+Create .gitignore (MANDATORY)
+
+# Python
+
+**pycache**/
+*.pyc
+
+# Virtual Env
+
+venv/
+
+# Secrets
+
+.env
+
+# Django
+
+db.sqlite3
+media/
+*.log
+
+# VS Code
+
+.vscode/
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+---
+
+Static & Media Setup (IMPORTANT)
+
+In base.py:
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+---
+
+Security Setup (Base Level)
+
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+---
+
+Production Security (prod.py)
+
+from .base import *
+
+DEBUG = False
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+---
+
+Custom User Model (DO THIS BEFORE MIGRATE)
+
+accounts/models.py
+
+from django.contrib.auth.models import AbstractUser
+
+class User(AbstractUser):
+pass
+
+base.py
+
+AUTH_USER_MODEL = 'accounts.User'
+
+---
+
+Install Production Dependencies
+
+```
+== pip install psycopg2-binary gunicorn whitenoise  
+```
+
+---
+
+Logging Setup (Basic)
+
+LOGGING = {
+'version': 1,
+'disable_existing_loggers': False,
+}
+
+---
+
+Final Structure Improvement
+
+Add:
+
+apps/
+templates/
+static/
+media/
+
+---
+
+Final Checks
+
+```
+== python manage.py makemigrations  
+== python manage.py migrate  
+== python manage.py createsuperuser  
+== python manage.py check  
+== python manage.py runserver  
+```
+
+---
+
+IMPORTANT NOTES
+
+1. NEVER commit .env file
+2. ALWAYS use custom user model before first migration
+3. KEEP dev and prod settings separate
+4. USE PostgreSQL for production (not SQLite)
+5. STATIC & MEDIA must be configured early
+6. SECURITY settings should not be ignored
+7. REQUIREMENTS.txt must be updated regularly
+
+---
+
+Setup Complete ✅
+Ready for:
+→ Authentication System
+→ Product & Order Models
+→ API Development
+
+---
