@@ -340,7 +340,7 @@ class AdmissionAdmin(admin.ModelAdmin):
 <th>Actions</th>
 </tr>
 
-{% for a in admissions %}
+{% for a in admission %}
 <tr>
 <td>{{ a.name }}</td>
 <td>{{ a.email }}</td>
