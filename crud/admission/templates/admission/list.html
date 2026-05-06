@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Admissions</h2>
+
+<table class="table table-bordered">
+
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Course</th>
+<th>Photo</th>
+<th>Actions</th>
+</tr>
+
+{% for a in admission %}
+<tr>
+<td>{{ a.name }}</td>
+<td>{{ a.email }}</td>
+<td>{{ a.course }}</td>
+
+<td>
+<img src="{{ a.photo.url }}" width="50">
+</td>
+
+<td>
+<a href="{% url 'update' a.pk %}" class="btn btn-warning btn-sm">Edit</a>
+<a href="{% url 'delete' a.pk %}" class="btn btn-danger btn-sm">Delete</a>
+</td>
+</tr>
+{% endfor %}
+
+</table>
+
+{% endblock %}
