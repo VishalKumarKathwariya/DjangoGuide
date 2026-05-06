@@ -1,0 +1,304 @@
+# 📘 Django Production-Level Models & Admin (Multi-App Architecture)
+
+---
+
+# 🧠 1. Project Architecture (Production Thinking)
+
+Split project into multiple apps:
+
+```
+core/        → Base models, shared logic  
+accounts/    → Custom user model  
+students/    → Student data  
+admissions/  → Admission records  
+documents/   → File uploads  
+```
+
+### ✅ Why this structure?
+
+* Scalable
+* Reusable apps
+* Clean separation of concerns
+
+---
+
+# ⚙️ 2. Project Setup
+
+```bash
+django-admin startproject config
+cd config
+
+python manage.py startapp core
+python manage.py startapp accounts
+python manage.py startapp students
+python manage.py startapp admissions
+python manage.py startapp documents
+```
+
+### Add in `settings.py`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'core',
+    'accounts',
+    'students',
+    'admissions',
+    'documents',
+]
+```
+
+---
+
+# 🧱 3. Core App (Base Models)
+
+### `core/models.py`
+
+```python
+from django.db import models
+
+class TimeStampedModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class SoftDeleteModel(models.Model):
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        abstract = True
+```
+
+---
+
+# 👤 4. Custom User Model
+
+### `accounts/models.py`
+
+```python
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+class User(AbstractUser):
+    email = models.EmailField(unique=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
+    def __str__(self):
+        return self.email
+```
+
+### `settings.py`
+
+```python
+AUTH_USER_MODEL = 'accounts.User'
+```
+
+---
+
+# 🎓 5. Student Model
+
+### `students/models.py`
+
+```python
+from django.db import models
+from core.models import TimeStampedModel
+
+class Student(TimeStampedModel):
+    GENDER_CHOICES = (
+        ('M', 'Male'),
+        ('F', 'Female'),
+    )
+
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    dob = models.DateField()
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    phone = models.CharField(max_length=15)
+    email = models.EmailField(unique=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+```
+
+---
+
+# 📂 6. Document Model (File Uploads)
+
+### `documents/models.py`
+
+```python
+from django.db import models
+from students.models import Student
+from core.models import TimeStampedModel
+
+def upload_to(instance, filename):
+    return f"students/{instance.student.id}/{filename}"
+
+class Document(TimeStampedModel):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='documents')
+    file = models.FileField(upload_to=upload_to)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Document of {self.student}"
+```
+
+---
+
+# 📝 7. Admission Model
+
+### `admissions/models.py`
+
+```python
+from django.db import models
+from students.models import Student
+from core.models import TimeStampedModel
+
+class Admission(TimeStampedModel):
+    STATUS_CHOICES = (
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    )
+
+    student = models.OneToOneField(Student, on_delete=models.CASCADE)
+    course = models.CharField(max_length=200)
+    admission_date = models.DateField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+
+    def __str__(self):
+        return f"{self.student} - {self.course}"
+```
+
+---
+
+# 🛠️ 8. Admin Configuration (Production-Level)
+
+---
+
+## 🔹 Student Admin
+
+```python
+from django.contrib import admin
+from .models import Student
+
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'first_name', 'last_name', 'email', 'phone', 'created_at')
+    search_fields = ('first_name', 'last_name', 'email')
+    list_filter = ('gender',)
+```
+
+---
+
+## 🔹 Document Inline Admin
+
+```python
+from django.contrib import admin
+from .models import Document
+
+class DocumentInline(admin.TabularInline):
+    model = Document
+    extra = 1
+```
+
+---
+
+## 🔹 Admission Admin (Advanced)
+
+```python
+from django.contrib import admin
+from .models import Admission
+from documents.admin import DocumentInline
+
+@admin.register(Admission)
+class AdmissionAdmin(admin.ModelAdmin):
+    list_display = ('student', 'course', 'status', 'admission_date')
+    list_filter = ('status',)
+    search_fields = ('student__first_name', 'course')
+
+    inlines = [DocumentInline]
+```
+
+---
+
+## 🔹 User Admin
+
+```python
+from django.contrib import admin
+from .models import User
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('email', 'username', 'is_staff')
+```
+
+---
+
+# 🗂️ 9. Media Setup (Important)
+
+### `settings.py`
+
+```python
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+```
+
+### `urls.py`
+
+```python
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    ...
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+```
+
+---
+
+# 🧪 10. Migrations
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+---
+
+# 👑 11. Create Superuser
+
+```bash
+python manage.py createsuperuser
+```
+
+---
+
+# 🚀 Final Output (What You Built)
+
+✔ Multi-app scalable project
+✔ Reusable base models
+✔ Custom user system
+✔ File upload handling
+✔ Advanced Django admin panel
+✔ Clean production-ready structure
+
+---
+
+# ⚠️ Next-Level Improvements
+
+* UUID instead of ID
+* AWS S3 storage
+* Signals (auto create admission)
+* File validation
+* Role-based permissions
+* Custom model managers
+
+---
+
+# 🧾 END OF NOTES

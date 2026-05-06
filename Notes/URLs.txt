@@ -1,0 +1,346 @@
+# 📘 DJANGO URLS – COMPLETE NOTES (BEGINNER → PRODUCTION)
+
+---
+
+# 🔹 1. WHAT ARE URLS IN DJANGO?
+
+URLs map a **web request → view (logic)**.
+
+Example:
+User visits:
+/students/5/
+
+Django calls:
+student_detail(request, id=5)
+
+---
+
+# 🔹 2. DJANGO URL FLOW
+
+Request Flow:
+
+Browser → Project URLs → App URLs → View → Response
+
+Step-by-step:
+
+1. Request hits project `urls.py`
+2. Django checks patterns top to bottom
+3. If matched → forwarded to app URLs
+4. App URLs call correct view
+5. View returns response
+
+---
+
+# 🔹 3. PROJECT vs APP URLS
+
+## Project URLs (Main Router)
+
+* Entry point of project
+* Connects all apps
+
+Example:
+
+```python
+path('students/', include('students.urls'))
+```
+
+## App URLs
+
+* Handles feature-specific routing
+* Each app should have its own `urls.py`
+
+---
+
+# 🔹 4. path() FUNCTION
+
+Syntax:
+
+```python
+path(route, view, kwargs=None, name=None)
+```
+
+| Parameter | Meaning           |
+| --------- | ----------------- |
+| route     | URL pattern       |
+| view      | function/class    |
+| kwargs    | extra static data |
+| name      | unique identifier |
+
+---
+
+# 🔹 5. BASIC URL EXAMPLE
+
+```python
+path('home/', views.home)
+```
+
+URL:
+/home/
+
+---
+
+# 🔹 6. URL PARAMETERS (DYNAMIC URLS)
+
+Used to pass data from URL to view.
+
+Example:
+
+```python
+path('student/<int:id>/', views.student_detail)
+```
+
+URL:
+/student/5/
+
+View:
+
+```python
+def student_detail(request, id):
+```
+
+➡️ id = 5
+
+---
+
+# 🔹 7. PARAMETER TYPES
+
+| Type | Example       | Description       |
+| ---- | ------------- | ----------------- |
+| int  | `<int:id>`    | numbers only      |
+| str  | `<str:name>`  | text              |
+| slug | `<slug:slug>` | SEO-friendly text |
+| uuid | `<uuid:id>`   | unique id         |
+
+---
+
+# 🔹 8. MULTIPLE PARAMETERS
+
+```python
+path('result/<int:id>/<str:subject>/', views.result)
+```
+
+URL:
+/result/10/math/
+
+View receives:
+id = 10
+subject = math
+
+---
+
+# 🔹 9. kwargs (STATIC DATA PASSING)
+
+Used to send extra data from URL config.
+
+Example:
+
+```python
+path('about/', views.about, {'version': '1.0'})
+```
+
+View:
+
+```python
+def about(request, version):
+```
+
+➡️ version = "1.0"
+
+---
+
+# 🔹 10. PARAMS vs kwargs
+
+| Feature | URL Params  | kwargs             |
+| ------- | ----------- | ------------------ |
+| Source  | URL         | URL config         |
+| Type    | Dynamic     | Static             |
+| Example | /student/5/ | {'version': '1.0'} |
+
+---
+
+# 🔹 11. URL NAMING (VERY IMPORTANT)
+
+```python
+path('student/<int:id>/', views.detail, name='student_detail')
+```
+
+Why?
+
+* Avoid hardcoding URLs
+* Used in templates and redirects
+
+Template:
+
+```html
+{% url 'student_detail' 5 %}
+```
+
+---
+
+# 🔹 12. NAMESPACING (PRODUCTION LEVEL)
+
+Add in app `urls.py`:
+
+```python
+app_name = 'students'
+```
+
+Usage:
+
+```html
+{% url 'students:detail' 5 %}
+```
+
+Why?
+
+* Prevent conflicts between apps
+
+---
+
+# 🔹 13. include() FUNCTION
+
+Used to connect app URLs to project.
+
+```python
+path('students/', include('students.urls'))
+```
+
+Why?
+
+* Keeps project modular
+* Easy scaling
+
+---
+
+# 🔹 14. PRODUCTION URL STRUCTURE
+
+Example:
+
+Project URLs:
+
+```python
+path('students/', include('students.urls'))
+path('courses/', include('courses.urls'))
+```
+
+Students URLs:
+
+```python
+path('', views.list)
+path('<int:id>/', views.detail)
+path('<int:id>/edit/', views.edit)
+```
+
+---
+
+# 🔹 15. RESTFUL URL DESIGN (BEST PRACTICE)
+
+Good:
+/students/
+/students/5/
+/students/5/edit/
+
+Bad:
+/getStudent/
+/updateStudent/
+
+---
+
+# 🔹 16. REVERSE URL LOOKUP
+
+Used in views:
+
+```python
+from django.urls import reverse
+
+reverse('students:detail', args=[5])
+```
+
+Why?
+
+* Dynamic URL generation
+* Avoid hardcoding
+
+---
+
+# 🔹 17. QUERY PARAMETERS (NOT PART OF URLS.PY)
+
+Example:
+/students/?page=2
+
+Access in view:
+
+```python
+request.GET.get('page')
+```
+
+---
+
+# 🔹 18. ORGANIZING LARGE PROJECTS
+
+Split URLs:
+
+students/
+urls/
+**init**.py
+student_urls.py
+api_urls.py
+
+---
+
+# 🔹 19. API VERSIONING (ADVANCED)
+
+```python
+path('api/v1/students/', include('students.api_urls'))
+```
+
+Why?
+
+* Maintain backward compatibility
+
+---
+
+# 🔹 20. COMMON MISTAKES
+
+❌ Not using app_name
+❌ Hardcoding URLs
+❌ Large single urls.py
+❌ No naming
+❌ Mixing logic in URLs
+
+---
+
+# 🔹 21. BEST PRACTICES
+
+✔ Use `include()` for apps
+✔ Always name URLs
+✔ Use namespaces
+✔ Follow REST patterns
+✔ Keep URLs clean & readable
+✔ Avoid duplication
+✔ Think scalability
+
+---
+
+# 🔹 22. QUICK SUMMARY
+
+* URLs connect request → view
+* Project routes → apps
+* Apps define actual URLs
+* Use parameters for dynamic data
+* Use kwargs for static data
+* Use names + namespaces for production
+* Follow REST structure
+
+---
+
+# 🎯 FINAL UNDERSTANDING
+
+Django URLs are not just routing — they define:
+
+* Structure of your application
+* Scalability
+* Maintainability
+* Developer experience
+
+A well-designed URL system = clean, scalable project
